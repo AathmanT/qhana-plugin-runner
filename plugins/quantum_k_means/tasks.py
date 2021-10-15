@@ -1,5 +1,5 @@
 import os
-from tempfile import SpooledTemporaryFile
+from tempfile import SpooledTemporaryFile, NamedTemporaryFile
 
 from typing import Optional
 
@@ -136,11 +136,14 @@ def calculation_task(self, db_id: int) -> str:
     for ent_id, idx in id_to_idx.items():
         entity_clusters.append({"ID": ent_id, "href": "", "cluster": int(clusters[idx])})
 
-    with SpooledTemporaryFile(mode="w") as output:
-        save_entities(entity_clusters, output, "application/json")
+    output = NamedTemporaryFile()
+    with open(output.name, "w") as write_output:
+        save_entities(entity_clusters, write_output, "application/json")
+
+    with open(output.name, "rb") as read_output:
         STORE.persist_task_result(
             db_id,
-            output,
+            read_output,
             "clusters.json",
             "clusters",
             "application/json",

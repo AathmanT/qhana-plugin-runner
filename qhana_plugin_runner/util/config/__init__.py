@@ -43,7 +43,8 @@ class ProductionConfig(SQLAchemyProductionConfig, SmorestProductionConfig):
 
     CELERY = CELERY_PRODUCTION_CONFIG
 
-    DEFAULT_FILE_STORE = "local_filesystem"
+    # DEFAULT_FILE_STORE = "local_filesystem"
+    DEFAULT_FILE_STORE = "azure_filesystem"
     FILE_STORE_ROOT_PATH = "files"
 
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 from enum import Enum
 from http import HTTPStatus
-from tempfile import SpooledTemporaryFile
+from tempfile import SpooledTemporaryFile, TemporaryFile, NamedTemporaryFile
 from typing import Mapping, Optional
 
 import flask
@@ -377,11 +377,14 @@ def calculation_task(self, db_id: int) -> str:
             {"ID": ent_id, "href": "", "point": [x for x in transformed[idx]]}
         )
 
-    with SpooledTemporaryFile(mode="w") as output:
-        save_entities(entity_points, output, "application/json")
+    output = NamedTemporaryFile()
+    with open(output.name, "w") as write_output:
+        save_entities(entity_points, write_output, "application/json")
+
+    with open(output.name, "rb") as read_output:
         STORE.persist_task_result(
             db_id,
-            output,
+            read_output,
             "entity_points.json",
             "entity-points",
             "application/json",

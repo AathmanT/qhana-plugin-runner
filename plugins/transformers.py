@@ -17,7 +17,7 @@ from enum import Enum
 from http import HTTPStatus
 from io import StringIO
 from json import dumps, loads
-from tempfile import SpooledTemporaryFile
+from tempfile import SpooledTemporaryFile, NamedTemporaryFile
 from typing import Mapping, Optional, List, Dict
 from zipfile import ZipFile
 
@@ -311,55 +311,57 @@ def calculation_task(self, db_id: int) -> str:
 
         element_similarities[attr_name] = json.load(file)
 
-    tmp_zip_file = SpooledTemporaryFile(mode="wb")
-    zip_file = ZipFile(tmp_zip_file, "w")
+    # tmp_zip_file = SpooledTemporaryFile(mode="wb")
+    output = NamedTemporaryFile()
+    with open(output.name, "wb") as output_tmp_zip_file:
+        zip_file = ZipFile(output_tmp_zip_file, "w")
 
-    for attribute in attributes:
-        attribute_distances = []
-        attr_elem_sims = element_similarities[attribute]
+        for attribute in attributes:
+            attribute_distances = []
+            attr_elem_sims = element_similarities[attribute]
 
-        for sim_entity in attr_elem_sims:
-            sim = sim_entity["similarity"]
-            dist = None
+            for sim_entity in attr_elem_sims:
+                sim = sim_entity["similarity"]
+                dist = None
 
-            if transformer == TransformersEnum.linear_inverse:
-                dist = 1.0 - sim
-            elif transformer == TransformersEnum.exponential_inverse:
-                dist = math.exp(-sim)
-            elif transformer == TransformersEnum.gaussian_inverse:
-                dist = math.exp(-sim * sim)
-            elif transformer == TransformersEnum.polynomial_inverse:
-                alpha = 1.0
-                beta = 1.0
+                if transformer == TransformersEnum.linear_inverse:
+                    dist = 1.0 - sim
+                elif transformer == TransformersEnum.exponential_inverse:
+                    dist = math.exp(-sim)
+                elif transformer == TransformersEnum.gaussian_inverse:
+                    dist = math.exp(-sim * sim)
+                elif transformer == TransformersEnum.polynomial_inverse:
+                    alpha = 1.0
+                    beta = 1.0
 
-                dist = 1.0 / (1.0 + pow(sim / alpha, beta))
-            elif transformer == TransformersEnum.square_inverse:
-                max_sim = 1.0
-                dist = (1.0 / math.sqrt(2.0)) * math.sqrt(2.0 * max_sim - 2 * sim)
+                    dist = 1.0 / (1.0 + pow(sim / alpha, beta))
+                elif transformer == TransformersEnum.square_inverse:
+                    max_sim = 1.0
+                    dist = (1.0 / math.sqrt(2.0)) * math.sqrt(2.0 * max_sim - 2 * sim)
 
-            attribute_distances.append(
-                {
-                    "ID": sim_entity["ID"],
-                    "entity_1_ID": sim_entity["entity_1_ID"],
-                    "entity_2_ID": sim_entity["entity_2_ID"],
-                    "href": "",
-                    "distance": dist,
-                }
-            )
+                attribute_distances.append(
+                    {
+                        "ID": sim_entity["ID"],
+                        "entity_1_ID": sim_entity["entity_1_ID"],
+                        "entity_2_ID": sim_entity["entity_2_ID"],
+                        "href": "",
+                        "distance": dist,
+                    }
+                )
 
-        with StringIO() as file:
-            save_entities(attribute_distances, file, "application/json")
-            file.seek(0)
-            zip_file.writestr(attribute + ".json", file.read())
+            with StringIO() as file:
+                save_entities(attribute_distances, file, "application/json")
+                file.seek(0)
+                zip_file.writestr(attribute + ".json", file.read())
 
-    zip_file.close()
-
-    STORE.persist_task_result(
-        db_id,
-        tmp_zip_file,
-        "attr_dist.zip",
-        "attribute_distances",
-        "application/zip",
-    )
+        zip_file.close()
+    with open(output.name, "rb") as tmp_zip_file:
+        STORE.persist_task_result(
+            db_id,
+            tmp_zip_file,
+            "attr_dist.zip",
+            "attribute_distances",
+            "application/zip",
+        )
 
     return "Result stored in file"

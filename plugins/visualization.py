@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from http import HTTPStatus
-from tempfile import SpooledTemporaryFile
+from tempfile import SpooledTemporaryFile, NamedTemporaryFile
 from typing import Mapping, Optional
 
 import flask
@@ -330,14 +330,15 @@ def calculation_task(self, db_id: int) -> str:
     fig = px.scatter(
         df, x="x", y="y", hover_name="ID", color="cluster", symbol="cluster", size="size"
     )
-
-    with SpooledTemporaryFile(mode="wt") as output:
+    output = NamedTemporaryFile()
+    with open(output.name, "wt") as write_output:
         html = fig.to_html()
-        output.write(html)
+        write_output.write(html)
 
+    with open(output.name, "rb") as read_output:
         STORE.persist_task_result(
             db_id,
-            output,
+            read_output,
             "plot.html",
             "plot",
             "text/html",

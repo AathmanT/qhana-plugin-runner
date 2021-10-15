@@ -13,7 +13,8 @@
 # limitations under the License.
 
 """Module containing a file store interface with a implementation for the local file system."""
-
+import os
+import uuid
 from pathlib import Path
 from secrets import token_urlsafe
 from shutil import copyfileobj
@@ -23,6 +24,7 @@ from flask.app import Flask
 from flask.helpers import url_for
 
 from qhana_plugin_runner.db.models.tasks import ProcessingTask, TaskFile
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 
 
 class _FileStoreInterface:
@@ -37,6 +39,7 @@ class _FileStoreInterface:
         """
         raise NotImplementedError()
 
+    # TODO _FileStoreInterface Interface
     def persist_task_result(
         self,
         task_db_id: int,
@@ -46,7 +49,7 @@ class _FileStoreInterface:
         mimetype: str,
         commit: bool = True,
     ) -> TaskFile:
-        """Perist a task result file and store the file information in the database.
+        """Persist a task result file and store the file information in the database.
 
         Args:
             task_db_id (int): the id of the task in the database
@@ -108,6 +111,7 @@ class _FileStoreInterface:
         """
         raise NotImplementedError()
 
+    # TODO _FileStoreInterface Interface
     def get_task_file_url(self, file_info: TaskFile, external: bool = True) -> str:
         """Get an URL for a TaskFile object.
 
@@ -123,7 +127,7 @@ class _FileStoreInterface:
 
 
 class FileStore(_FileStoreInterface):
-    """Interface class for file stor implementations."""
+    """Interface class for file store implementations."""
 
     __store_classes: ClassVar[Dict[str, Type["FileStore"]]] = {}
 
@@ -155,7 +159,7 @@ class FileStore(_FileStoreInterface):
         The returned path object is always a relative path.
         If the path is not relative a path relative to the root of that path is returned.
 
-        Mitigates simple path traversal attacs.
+        Mitigates simple path traversal attacks.
 
         Args:
             path (Union[str, Path]): The file path to prepare
@@ -170,7 +174,7 @@ class FileStore(_FileStoreInterface):
             path = Path(path)
 
         if ".." in path.parts:
-            # prevent easy path traversal attacs
+            # prevent easy path traversal attacks
             raise ValueError("Paths may not contain parent folder parts ('..').")
 
         if path.is_absolute():
@@ -181,6 +185,7 @@ class FileStore(_FileStoreInterface):
         """Get the full file identifier (e.g. the absolute path or a UIR/URL to the file)."""
         raise NotImplementedError()
 
+    # TODO FileStore Interface
     def _persist_task_file(
         self,
         task_db_id: int,
@@ -190,7 +195,7 @@ class FileStore(_FileStoreInterface):
         mimetype: Optional[str],
         commit: bool = True,
     ) -> TaskFile:
-        """Perist a task file and store the file information in the database.
+        """Persist a task file and store the file information in the database.
 
         Args:
             task_db_id (int): the id of the task in the database
@@ -222,6 +227,7 @@ class FileStore(_FileStoreInterface):
         file_info.save(commit)
         return file_info
 
+    # TODO FileStore Interface
     def persist_task_result(
         self,
         task_db_id: int,
@@ -231,6 +237,7 @@ class FileStore(_FileStoreInterface):
         mimetype: str,
         commit: bool = True,
     ) -> TaskFile:
+        # TODO FileStore Interface change to S3
         target = Path(f"task_{task_db_id}/out") / Path(file_name)
         return self._persist_task_file(
             task_db_id, file_, target, file_type, mimetype, commit
@@ -244,6 +251,7 @@ class FileStore(_FileStoreInterface):
         mimetype: Optional[str] = None,
         commit: bool = True,
     ) -> TaskFile:
+        # TODO persis temp task file Interface FileStore
         target = Path(f"task_{task_db_id}/tmp") / Path(file_name)
         return self._persist_task_file(
             task_db_id,
@@ -254,6 +262,7 @@ class FileStore(_FileStoreInterface):
             commit=commit,
         )
 
+    # TODO FileStore Interface
     def get_task_file_url(self, file_info: TaskFile, external: bool = True) -> str:
         return self.get_file_url(file_info.file_storage_data, external=external)
 
@@ -270,7 +279,7 @@ class LocalFileStore(FileStore, name="local_filesystem"):
 
         The root path can be configured with ``"FILE_STORE_ROOT_PATH"`` in the app config.
 
-        A relative path will be interpreted relative to the app inctance folder.
+        A relative path will be interpreted relative to the app instance folder.
         """
         if self._root_path:
             return self._root_path
@@ -302,6 +311,7 @@ class LocalFileStore(FileStore, name="local_filesystem"):
                 file_.seek(0)
             except Exception:
                 pass  # assume the file object does not support seek
+        # TODO save in Azure
         target_path = self._get_storage_root() / self.prepare_path(target)
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with target_path.open(mode=mode) as target_file:
@@ -322,6 +332,140 @@ class LocalFileStore(FileStore, name="local_filesystem"):
             **{"file-id": file_info.security_tag},
             _external=True,
         )
+
+
+class AzureFileStore(FileStore, name="azure_filesystem"):
+    """A file store implementation using the local file system."""
+
+    def __init__(self, app: Flask) -> None:
+        super().__init__(app=app)
+        self._root_path: Optional[Path] = None
+
+        connect_str = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+        self.container_name = "qhana-files"
+        try:
+            self.blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+            self.container_client = self.blob_service_client.create_container(self.container_name, public_access="blob")
+
+        except Exception as ex:
+            print('Exception:')
+            print(ex)
+
+    def _get_storage_root(self) -> Path:
+        """Get the root path where to store the files at.
+
+        The root path can be configured with ``"FILE_STORE_ROOT_PATH"`` in the app config.
+
+        A relative path will be interpreted relative to the app instance folder.
+        """
+        if self._root_path:
+            return self._root_path
+        assert self.app is not None
+        settings_path = Path(self.app.config.get("FILE_STORE_ROOT_PATH", "files"))
+        if settings_path.is_absolute():
+            self._root_path = settings_path
+        else:
+            self._root_path = Path(self.app.instance_path) / settings_path
+        return self._root_path
+
+    def _get_file_identifier(self, target: Path):
+        """Get the full path of the file on disc."""
+        return str(self._get_storage_root() / target)
+
+    # TODO Azure FileStore
+    def persist_task_result(
+        self,
+        task_db_id: int,
+        file_: IO,
+        file_name: str,
+        file_type: str,
+        mimetype: str,
+        commit: bool = True,
+    ) -> TaskFile:
+        # TODO Azure FileStore change to S3
+        # target = Path(f"task_{task_db_id}/out") / Path(file_name)
+        blob_client = self.blob_service_client.get_blob_client(container=self.container_name,
+                                                               blob=str(uuid.uuid4()) + "/" + file_name)
+        blob_client.upload_blob(file_)
+        file_url = blob_client.url
+
+        return self._persist_task_file2(
+            task_db_id, file_name, file_url, file_type, mimetype, commit
+        )
+
+    # TODO Azure FileStore
+    def _persist_task_file2(
+        self,
+        task_db_id: int,
+        file_name: str,
+        file_url: str,
+        file_type: str,
+        mimetype: Optional[str],
+        commit: bool = True,
+    ) -> TaskFile:
+        """Persist a task file and store the file information in the database.
+
+        Args:
+            task_db_id (int): the id of the task in the database
+            file_ (IO): the file object to persist
+            target (Path): the target path
+            file_type (str): the file type tag
+            mimetype (Optional[str]): the mime type of the file
+            commit (bool): if true commits the current DB transaction. Defaults to True.
+
+        Raises:
+            KeyError: if the task could not be found in the database
+
+        Returns:
+            TaskFile: the file information stored in the database
+        """
+        task = ProcessingTask.get_by_id(task_db_id)
+        if not task:
+            raise KeyError(f"No task with database id {task_db_id} found!")
+        # self.persist_file(file_, target)
+        file_info = TaskFile(
+            task=task,
+            security_tag=token_urlsafe(32),
+            storage_provider=self.name,
+            file_name=file_name,
+            file_storage_data=file_url,
+            file_type=file_type,
+            mimetype=mimetype,
+        )
+        file_info.save(commit)
+        return file_info
+
+    # TODO Azure FileStore
+    # def persist_file(self, file_: IO, target: Union[str, Path]):
+    #     mode: str  # mode to open target file with
+    #     if isinstance(file_, TextIO):
+    #         mode = "w"
+    #     elif isinstance(file_, BinaryIO):
+    #         mode = "wb"
+    #     elif hasattr(file_, "mode"):
+    #         # try to guess if text or binary mode was used
+    #         mode = "wb" if ("b" in file_.mode) else "w"
+    #     else:
+    #         raise ValueError("Cannot determine mode of file object!")
+    #     if hasattr(file_, "seek") and callable(file_.seek):
+    #         try:  # seek to beginning of a file (useful for in memory temp files that were just written)
+    #             file_.seek(0)
+    #         except Exception:
+    #             pass  # assume the file object does not support seek
+    #     # TODO save in Azure
+    #     target_path = self._get_storage_root() / self.prepare_path(target)
+    #     target_path.parent.mkdir(parents=True, exist_ok=True)
+    #     with target_path.open(mode=mode) as target_file:
+    #         copyfileobj(file_, target_file)
+
+    # TODO AzureFileStore
+    def get_file_url(self, file_storage_data: str, external: bool) -> str:
+        # return Azure blob URL
+        return file_storage_data
+
+    # TODO AzureFileStore
+    def get_task_file_url(self, file_info: TaskFile, external: bool) -> str:
+        return self.get_file_url(file_info.file_storage_data, external=external)
 
 
 class FileStoreRegistry(_FileStoreInterface):
@@ -369,6 +513,7 @@ class FileStoreRegistry(_FileStoreInterface):
             raise NotImplementedError()
         self._stores[self._default_store].persist_file(file_, target)
 
+    # TODO FileStoreRegistry Interface
     def persist_task_result(
         self,
         task_db_id: int,
@@ -398,11 +543,13 @@ class FileStoreRegistry(_FileStoreInterface):
             task_db_id, file_, file_name, mimetype
         )
 
+    # TODO FileStoreRegistry Interface
     def get_file_url(self, file_storage_data: str, external: bool = True) -> str:
         if self._default_store is None:
             raise NotImplementedError()
         return self._stores[self._default_store].get_file_url(file_storage_data, external)
 
+    # TODO FileStoreRegistry Interface
     def get_task_file_url(self, file_info: TaskFile, external: bool = True) -> str:
         if self._default_store is None:
             raise NotImplementedError()

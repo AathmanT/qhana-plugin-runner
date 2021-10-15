@@ -17,7 +17,7 @@ from enum import Enum
 from http import HTTPStatus
 from io import StringIO
 from json import dumps, loads
-from tempfile import SpooledTemporaryFile
+from tempfile import SpooledTemporaryFile, NamedTemporaryFile
 from typing import Mapping, Optional, List, Dict
 from zipfile import ZipFile
 
@@ -348,11 +348,14 @@ def calculation_task(self, db_id: int) -> str:
             }
         )
 
-    with SpooledTemporaryFile(mode="w") as output:
-        save_entities(entity_distances, output, "application/json")
+    output = NamedTemporaryFile()
+    with open(output.name, "w") as write_output:
+        save_entities(entity_distances, write_output, "application/json")
+
+    with open(output.name, "rb") as read_output:
         STORE.persist_task_result(
             db_id,
-            output,
+            read_output,
             "entity_distances.json",
             "entity-distances",
             "application/json",

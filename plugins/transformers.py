@@ -355,6 +355,7 @@ def calculation_task(self, db_id: int) -> str:
                 zip_file.writestr(attribute + ".json", file.read())
 
         zip_file.close()
+    output_tmp_zip_file.close()
     with open(output.name, "rb") as tmp_zip_file:
         STORE.persist_task_result(
             db_id,

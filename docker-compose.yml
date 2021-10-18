@@ -12,7 +12,7 @@ services:
     environment:
       BROKER_URL: redis://redis:6379
       RESULT_BACKEND: redis://redis:6379
-      SQLALCHEMY_DATABASE_URI: "postgresql+psycopg2://user:password@postgres:5432/default_db"
+      SQLALCHEMY_DATABASE_URI: ${SQLALCHEMY_DATABASE_URI}
     entrypoint: ["/app/start.sh"]
   redis:
     image: "redis:latest"
@@ -38,7 +38,7 @@ services:
     environment:
       BROKER_URL: redis://redis:6379
       RESULT_BACKEND: redis://redis:6379
-      SQLALCHEMY_DATABASE_URI: "postgresql+psycopg2://user:password@postgres:5432/default_db"
+      SQLALCHEMY_DATABASE_URI: ${SQLALCHEMY_DATABASE_URI}
     entrypoint: ["poetry", "run", "invoke", "worker"]
 volumes:
   instance:

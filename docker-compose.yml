@@ -13,6 +13,9 @@ services:
       BROKER_URL: redis://redis:6379
       RESULT_BACKEND: redis://redis:6379
       SQLALCHEMY_DATABASE_URI: "${SQLALCHEMY_DATABASE_URI}"
+      AZURE_STORAGE_CONNECTION_STRING: "${AZURE_STORAGE_CONNECTION_STRING}"
+      QHANA_USERNAME: "${QHANA_USERNAME}"
+      QHANA_PWD: "${QHANA_PWD}"
     entrypoint: ["/app/start.sh"]
   redis:
     image: "redis:latest"
@@ -39,6 +42,9 @@ services:
       BROKER_URL: redis://redis:6379
       RESULT_BACKEND: redis://redis:6379
       SQLALCHEMY_DATABASE_URI: "${SQLALCHEMY_DATABASE_URI}"
+      AZURE_STORAGE_CONNECTION_STRING: "${AZURE_STORAGE_CONNECTION_STRING}"
+      QHANA_USERNAME: "${QHANA_USERNAME}"
+      QHANA_PWD: "${QHANA_PWD}"
     entrypoint: ["poetry", "run", "invoke", "worker"]
 volumes:
   instance:

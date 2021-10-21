@@ -29,6 +29,7 @@ from marshmallow import types
 from marshmallow.exceptions import ValidationError
 from marshmallow.validate import URL as UrlValidator
 
+from .basic_auth import BasicAuthMixin
 from .jwt import JWTMixin
 
 
@@ -82,8 +83,18 @@ class HtmlResponseMixin:
         return decorator
 
 
-class SecurityBlueprint(Blueprint, JWTMixin, HtmlResponseMixin):
-    """Blueprint that is aware of jwt tokens and how to document them.
+# class SecurityBlueprint(Blueprint, JWTMixin, HtmlResponseMixin):
+#     """Blueprint that is aware of jwt tokens and how to document them.
+#
+#     Use this Blueprint if you want to document security requirements for your api.
+#     """
+#
+#     def __init__(self, *args: Any, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self._prepare_doc_cbks.append(self._prepare_security_doc)
+
+class SecurityBlueprint(Blueprint, BasicAuthMixin, HtmlResponseMixin):
+    """Blueprint that is aware of Basic Auth and how to document them.
 
     Use this Blueprint if you want to document security requirements for your api.
     """

@@ -99,7 +99,7 @@ class PluginsView(MethodView):
     """Plugins collection resource."""
 
     @ZIP_MERGER_BLP.response(HTTPStatus.OK, PluginMetadataSchema)
-    @ZIP_MERGER_BLP.require_jwt("jwt", optional=True)
+    @ZIP_MERGER_BLP.require_auth("basicAuth", optional=False)
     def get(self):
         """Zip merger endpoint returning the plugin metadata."""
         return {
@@ -159,7 +159,7 @@ class MicroFrontend(MethodView):
         location="query",
         required=False,
     )
-    @ZIP_MERGER_BLP.require_jwt("jwt", optional=True)
+    @ZIP_MERGER_BLP.require_auth("basicAuth", optional=False)
     def get(self, errors):
         """Return the micro frontend."""
         return self.render(request.args, errors)
@@ -174,7 +174,7 @@ class MicroFrontend(MethodView):
         location="form",
         required=False,
     )
-    @ZIP_MERGER_BLP.require_jwt("jwt", optional=True)
+    @ZIP_MERGER_BLP.require_auth("basicAuth", optional=False)
     def post(self, errors):
         """Return the micro frontend with prerendered inputs."""
         return self.render(request.form, errors)
@@ -203,7 +203,7 @@ class CalcSimilarityView(MethodView):
 
     @ZIP_MERGER_BLP.arguments(InputParametersSchema(unknown=EXCLUDE), location="form")
     @ZIP_MERGER_BLP.response(HTTPStatus.OK, TaskResponseSchema())
-    @ZIP_MERGER_BLP.require_jwt("jwt", optional=True)
+    @ZIP_MERGER_BLP.require_auth("basicAuth", optional=False)
     def post(self, arguments):
         """Start the calculation task."""
         db_task = ProcessingTask(

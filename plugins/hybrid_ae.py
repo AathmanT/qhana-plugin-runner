@@ -102,7 +102,7 @@ class PluginsView(MethodView):
     """Plugins collection resource."""
 
     @HA_BLP.response(HTTPStatus.OK, HybridAutoencoderResponseSchema())
-    @HA_BLP.require_jwt("jwt", optional=True)
+    @HA_BLP.require_auth("basicAuth", optional=False)
     def get(self):
         """Demo endpoint returning the plugin metadata."""
         return {
@@ -134,7 +134,7 @@ class MicroFrontend(MethodView):
         location="query",
         required=False,
     )
-    @HA_BLP.require_jwt("jwt", optional=True)
+    @HA_BLP.require_auth("basicAuth", optional=False)
     def get(self, errors):
         """Return the micro frontend."""
         return self.render(request.args, errors)
@@ -149,7 +149,7 @@ class MicroFrontend(MethodView):
         location="form",
         required=False,
     )
-    @HA_BLP.require_jwt("jwt", optional=True)
+    @HA_BLP.require_auth("basicAuth", optional=False)
     def post(self, errors):
         """Return the micro frontend with prerendered inputs."""
         return self.render(request.form, errors)
@@ -181,7 +181,7 @@ class HybridAutoencoderPennylaneAPI(MethodView):
     @HA_BLP.arguments(
         HybridAutoencoderPennylaneRequestSchema(unknown=EXCLUDE), location="form"
     )
-    @HA_BLP.require_jwt("jwt", optional=True)
+    @HA_BLP.require_auth("basicAuth", optional=False)
     def post(self, req_dict):
         """Start the demo task."""
         db_task = ProcessingTask(

@@ -13,7 +13,7 @@
 # limitations under the License.
 from enum import Enum
 from http import HTTPStatus
-from tempfile import SpooledTemporaryFile, TemporaryFile, NamedTemporaryFile
+from tempfile import NamedTemporaryFile
 from typing import Mapping, Optional
 
 import flask
@@ -147,7 +147,7 @@ class PluginsView(MethodView):
     """Plugins collection resource."""
 
     @MDS_BLP.response(HTTPStatus.OK, PluginMetadataSchema)
-    @MDS_BLP.require_jwt("jwt", optional=True)
+    @MDS_BLP.require_auth("basicAuth", optional=False)
     def get(self):
         """MDS endpoint returning the plugin metadata."""
         return {
@@ -203,7 +203,7 @@ class MicroFrontend(MethodView):
         location="query",
         required=False,
     )
-    @MDS_BLP.require_jwt("jwt", optional=True)
+    @MDS_BLP.require_auth("basicAuth", optional=False)
     def get(self, errors):
         """Return the micro frontend."""
         return self.render(request.args, errors)
@@ -219,7 +219,7 @@ class MicroFrontend(MethodView):
         location="form",
         required=False,
     )
-    @MDS_BLP.require_jwt("jwt", optional=True)
+    @MDS_BLP.require_auth("basicAuth", optional=False)
     def post(self, errors):
         """Return the micro frontend with prerendered inputs."""
         return self.render(request.form, errors)
@@ -263,7 +263,7 @@ class CalcView(MethodView):
 
     @MDS_BLP.arguments(InputParametersSchema(unknown=EXCLUDE), location="form")
     @MDS_BLP.response(HTTPStatus.OK, TaskResponseSchema())
-    @MDS_BLP.require_jwt("jwt", optional=True)
+    @MDS_BLP.require_auth("jwt", optional=False)
     def post(self, arguments):
         """Start the calculation task."""
         db_task = ProcessingTask(

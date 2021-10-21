@@ -105,7 +105,7 @@ class PluginsView(MethodView):
     """Plugins collection resource."""
 
     @VIS_BLP.response(HTTPStatus.OK, PluginMetadataSchema)
-    @VIS_BLP.require_jwt("jwt", optional=True)
+    @VIS_BLP.require_auth("basicAuth", optional=False)
     def get(self):
         """Visualization endpoint returning the plugin metadata."""
         return {
@@ -166,7 +166,7 @@ class MicroFrontend(MethodView):
         location="query",
         required=False,
     )
-    @VIS_BLP.require_jwt("jwt", optional=True)
+    @VIS_BLP.require_auth("basicAuth", optional=False)
     def get(self, errors):
         """Return the micro frontend."""
         return self.render(request.args, errors)
@@ -182,7 +182,7 @@ class MicroFrontend(MethodView):
         location="form",
         required=False,
     )
-    @VIS_BLP.require_jwt("jwt", optional=True)
+    @VIS_BLP.require_auth("basicAuth", optional=False)
     def post(self, errors):
         """Return the micro frontend with prerendered inputs."""
         return self.render(request.form, errors)
@@ -221,7 +221,7 @@ class CalcView(MethodView):
 
     @VIS_BLP.arguments(InputParametersSchema(unknown=EXCLUDE), location="form")
     @VIS_BLP.response(HTTPStatus.OK, TaskResponseSchema())
-    @VIS_BLP.require_jwt("jwt", optional=True)
+    @VIS_BLP.require_auth("basicAuth", optional=False)
     def post(self, arguments):
         """Start the calculation task."""
         db_task = ProcessingTask(

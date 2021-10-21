@@ -169,7 +169,7 @@ class PluginsView(MethodView):
     """Plugins collection resource."""
 
     @ENTITY_FILTER_BLP.response(HTTPStatus.OK, ResponseSchema())
-    @ENTITY_FILTER_BLP.require_jwt("jwt", optional=True)
+    @ENTITY_FILTER_BLP.require_auth("basicAuth", optional=False)
     def get(self):
         """Entity filter endpoint returning the plugin metadata."""
         return {
@@ -232,7 +232,7 @@ class MicroFrontend(MethodView):
         location="query",
         required=False,
     )
-    @ENTITY_FILTER_BLP.require_jwt("jwt", optional=True)
+    @ENTITY_FILTER_BLP.require_auth("basicAuth", optional=False)
     def get(self, errors):
         """Return the micro frontend."""
         return self.render(request.args, errors)
@@ -247,7 +247,7 @@ class MicroFrontend(MethodView):
         location="form",
         required=False,
     )
-    @ENTITY_FILTER_BLP.require_jwt("jwt", optional=True)
+    @ENTITY_FILTER_BLP.require_auth("basicAuth", optional=False)
     def post(self, errors):
         """Return the micro frontend with prerendered inputs."""
         return self.render(request.form, errors)
@@ -278,7 +278,7 @@ class ProcessView(MethodView):
         EntityFilterParametersSchema(unknown=EXCLUDE), location="form"
     )
     @ENTITY_FILTER_BLP.response(HTTPStatus.OK, TaskResponseSchema())
-    @ENTITY_FILTER_BLP.require_jwt("jwt", optional=True)
+    @ENTITY_FILTER_BLP.require_auth("basicAuth", optional=False)
     def post(self, input_params: EntityFilterParametersSchema):
         """Start the entity filter task."""
         db_task = ProcessingTask(

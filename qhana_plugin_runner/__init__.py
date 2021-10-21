@@ -97,10 +97,8 @@ def create_app(test_config: Optional[Dict[str, Any]] = None):
 
         # load database URI from env vars
         if "SQLALCHEMY_DATABASE_URI" in os.environ:
-            db_co = True
             config["SQLALCHEMY_DATABASE_URI"] = os.environ["SQLALCHEMY_DATABASE_URI"]
-        else:
-            db_co = False
+
     else:
         # load the test config if passed in
         config.from_mapping(test_config)
@@ -135,8 +133,7 @@ def create_app(test_config: Optional[Dict[str, Any]] = None):
     logger.info(
         f"Possible config locations are: 'config.py', 'config.json', Environment: '{ENV_VAR_PREFIX}_SETTINGS'"
     )
-    logger.info(f"db config set in the env '{db_co}'")
-    
+
     if config.get("SECRET_KEY") == "debug_secret":
         logger.error(
             'The configured SECRET_KEY="debug_secret" is unsafe and must not be used in production!'

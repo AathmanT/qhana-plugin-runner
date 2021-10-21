@@ -85,7 +85,7 @@ class PluginsView(MethodView):
     """Plugins collection resource."""
 
     @WU_PALMER_CACHE_BLP.response(HTTPStatus.OK, PluginMetadataSchema)
-    @WU_PALMER_CACHE_BLP.require_jwt("jwt", optional=True)
+    @WU_PALMER_CACHE_BLP.require_auth("basicAuth", optional=False)
     def get(self):
         """Wu Palmer cache endpoint returning the plugin metadata."""
         return {
@@ -140,7 +140,7 @@ class MicroFrontend(MethodView):
         location="query",
         required=False,
     )
-    @WU_PALMER_CACHE_BLP.require_jwt("jwt", optional=True)
+    @WU_PALMER_CACHE_BLP.require_auth("basicAuth", optional=False)
     def get(self, errors):
         """Return the micro frontend."""
         return self.render(request.args, errors)
@@ -155,7 +155,7 @@ class MicroFrontend(MethodView):
         location="form",
         required=False,
     )
-    @WU_PALMER_CACHE_BLP.require_jwt("jwt", optional=True)
+    @WU_PALMER_CACHE_BLP.require_auth("basicAuth", optional=False)
     def post(self, errors):
         """Return the micro frontend with prerendered inputs."""
         return self.render(request.form, errors)
@@ -186,7 +186,7 @@ class CalcSimilarityView(MethodView):
         CalcSimilarityParametersSchema(unknown=EXCLUDE), location="form"
     )
     @WU_PALMER_CACHE_BLP.response(HTTPStatus.OK, TaskResponseSchema())
-    @WU_PALMER_CACHE_BLP.require_jwt("jwt", optional=True)
+    @WU_PALMER_CACHE_BLP.require_auth("basicAuth", optional=False)
     def post(self, arguments):
         """Start the calculation task."""
         db_task = ProcessingTask(

@@ -28,7 +28,9 @@ from flask_smorest import Blueprint as SmorestBlueprint
 
 from .extra_fields import EnumField
 from .files_api import FILES_API
-from .jwt import SECURITY_SCHEMES
+# from .jwt import SECURITY_SCHEMES
+from .basic_auth import SECURITY_SCHEMES
+
 from .plugins_api import PLUGINS_API
 from .tasks_api import TASKS_API
 from .util import MaBaseSchema

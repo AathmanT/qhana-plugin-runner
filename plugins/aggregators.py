@@ -122,7 +122,7 @@ class PluginsView(MethodView):
     """Plugins collection resource."""
 
     @AGGREGATOR_BLP.response(HTTPStatus.OK, PluginMetadataSchema)
-    @AGGREGATOR_BLP.require_jwt("jwt", optional=True)
+    @AGGREGATOR_BLP.require_auth("basicAuth", optional=False)
     def get(self):
         """Aggregators endpoint returning the plugin metadata."""
         return {
@@ -178,7 +178,7 @@ class MicroFrontend(MethodView):
         location="query",
         required=False,
     )
-    @AGGREGATOR_BLP.require_jwt("jwt", optional=True)
+    @AGGREGATOR_BLP.require_auth("basicAuth", optional=False)
     def get(self, errors):
         """Return the micro frontend."""
         return self.render(request.args, errors)
@@ -194,7 +194,7 @@ class MicroFrontend(MethodView):
         location="form",
         required=False,
     )
-    @AGGREGATOR_BLP.require_jwt("jwt", optional=True)
+    @AGGREGATOR_BLP.require_auth("basicAuth", optional=False)
     def post(self, errors):
         """Return the micro frontend with prerendered inputs."""
         return self.render(request.form, errors)
@@ -223,7 +223,7 @@ class CalcSimilarityView(MethodView):
 
     @AGGREGATOR_BLP.arguments(InputParametersSchema(unknown=EXCLUDE), location="form")
     @AGGREGATOR_BLP.response(HTTPStatus.OK, TaskResponseSchema())
-    @AGGREGATOR_BLP.require_jwt("jwt", optional=True)
+    @AGGREGATOR_BLP.require_auth("basicAuth", optional=False)
     def post(self, arguments):
         """Start the calculation task."""
         db_task = ProcessingTask(

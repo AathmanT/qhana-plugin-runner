@@ -150,7 +150,7 @@ class DemoUser:
 
 @JWT.user_identity_loader
 def load_user_identity(user: DemoUser):
-    # load the user identity (primary key) fromthe user object here
+    # load the user identity (primary key) from the user object here
     return user.username
 
 

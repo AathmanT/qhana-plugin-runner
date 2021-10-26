@@ -71,7 +71,7 @@ class TaskStatusSchema(MaBaseSchema):
         return data
 
 
-@TASKS_API.route("/<string:task_id>")
+@TASKS_API.route("/<string:task_id>/")
 class TaskView(MethodView):
     """Task status resource."""
 
